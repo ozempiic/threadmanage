@@ -34,7 +34,7 @@ DWORD_PTR WINAPI GetThreadStartAddress(HANDLE hThread)
 
 DWORD_PTR* GetModuleInfo(DWORD pid, const wchar_t* target)
 {
-    HANDLE hSnap = CreateToolhelp32Snapshot(TH32CS_SNAPMODULE, pid); // Removed TH32CS_SNAPMODULE32
+    HANDLE hSnap = CreateToolhelp32Snapshot(TH32CS_SNAPMODULE, pid);
     static DWORD_PTR moduleinfo[2] = { 0 };
 
     if (hSnap == INVALID_HANDLE_VALUE)
@@ -83,7 +83,7 @@ BOOL isTarget(HANDLE tHandle, DWORD pid, const wchar_t* target)
     DWORD_PTR* retmoduleinfo = GetModuleInfo(pid, target);
     if (!retmoduleinfo)
     {
-        std::cout << "Failed to get module information!\n";
+        std::cout << "Failed to get module information for " << target << "!\n";
         ExitProcess(1);
     }
 
@@ -94,15 +94,19 @@ BOOL isTarget(HANDLE tHandle, DWORD pid, const wchar_t* target)
     {
         printf("THREAD START ADDR: %012llX\n", ThreadStartAddr);
         printf("MODULE START ADDR: %012llX\n", retmoduleinfo[0]);
-        printf("MODULE END ADDR: %012llX\n", retmoduleinfo[0] + retmoduleinfo[1]);
+        printf("MODULE END ADDR:   %012llX\n", retmoduleinfo[0] + retmoduleinfo[1]);
     }
+
+    std::wcout << "Checking thread for DLL: " << target << std::endl;
 
     if (ThreadStartAddr >= ModuleStart && ThreadStartAddr <= ModuleEnd)
     {
+        std::cout << "Thread matched target DLL: " << target << "\n\n";
         return TRUE;
     }
     else
     {
+        std::cout << "Thread did not match target DLL: " << target << "\n\n";
         return FALSE;
     }
 }
@@ -169,7 +173,7 @@ int main()
                 wchar_t processName[MAX_PATH];
                 MultiByteToWideChar(CP_ACP, 0, pe.szExeFile, -1, processName, MAX_PATH);
 
-                if (_wcsicmp(processName, L"main.exe") == 0)
+                if (_wcsicmp(processName, L"main.exe") == 0) // change this to whatever executable you want
                 {
                     pid = pe.th32ProcessID;
                 }
@@ -207,15 +211,13 @@ int main()
                     tHandle = OpenThread(THREAD_SUSPEND_RESUME | THREAD_QUERY_INFORMATION, FALSE, te.th32ThreadID);
                     if (tHandle != INVALID_HANDLE_VALUE)
                     {
-                        if (isTarget(tHandle, pid, L"ntdll.dll")) // add whatever dll you want
+                        if (isTarget(tHandle, pid, L"ntdll.dll")) 
                         {
                             SuspendThread(tHandle);
-                            if (DEBUG_MODE)
-                            {
-                                std::cout << "THREADID: " << te.th32ThreadID << "\n";
-                            }
+                            std::cout << "THREADID: " << te.th32ThreadID << " Suspended for ntdll.dll\n";
+                            ResumeThread(tHandle); 
                         }
-                        if (isTarget(tHandle, pid, L"libstdc++-6.dll")) // add whatever dll you want
+                        if (isTarget(tHandle, pid, L"kernel32.dll")) 
                         {
                             HANDLE dupHandle;
                             if (DuplicateHandle(GetCurrentProcess(), tHandle, GetCurrentProcess(), &dupHandle, THREAD_SUSPEND_RESUME, FALSE, 0))
@@ -223,13 +225,14 @@ int main()
                                 args thargs;
                                 thargs.hThread = dupHandle;
                                 CreateThread(nullptr, 0, (LPTHREAD_START_ROUTINE)CrackAnyRun, &thargs, 0, nullptr);
+                                std::cout << "THREADID: " << te.th32ThreadID << " Managed for kernel32.dll\n";
                                 CloseHandle(tHandle);
                                 continue;
                             }
                         }
                         else
                         {
-                            continue;
+                            // Handle other threads or conditions here
                         }
                         CloseHandle(tHandle);
                     }
