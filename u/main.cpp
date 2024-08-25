@@ -36,13 +36,13 @@ int main()
     // Adjust privileges
     if (!OpenProcessToken(GetCurrentProcess(), TOKEN_ADJUST_PRIVILEGES, &hToken))
     {
-        std::cerr << "OpenProcessToken failed with error: " << GetLastError() << "\n";
+        std::cout << "OpenProcessToken failed with error: " << GetLastError() << "\n";
         return 1;
     }
 
     if (!LookupPrivilegeValue(nullptr, SE_DEBUG_NAME, &luid))
     {
-        std::cerr << "LookupPrivilegeValue failed with error: " << GetLastError() << "\n";
+        std::cout << "LookupPrivilegeValue failed with error: " << GetLastError() << "\n";
         return 1;
     }
 
@@ -53,7 +53,7 @@ int main()
 
     if (!AdjustTokenPrivileges(hToken, FALSE, &tokenPriv, sizeof(TOKEN_PRIVILEGES), nullptr, nullptr))
     {
-        std::cerr << "AdjustTokenPrivileges failed with error: " << GetLastError() << "\n";
+        std::cout << "AdjustTokenPrivileges failed with error: " << GetLastError() << "\n";
         return 1;
     }
 
@@ -78,19 +78,19 @@ int main()
         }
         else
         {
-            std::cerr << "Process32First failed with error: " << GetLastError() << "\n";
+            std::cout << "Process32First failed with error: " << GetLastError() << "\n";
             return 1;
         }
     }
     else
     {
-        std::cerr << "CreateToolhelp32Snapshot failed with error: " << GetLastError() << "\n";
+        std::cout << "CreateToolhelp32Snapshot failed with error: " << GetLastError() << "\n";
         return 1;
     }
 
     if (pid == 0)
     {
-        std::cerr << "Process not found!\n";
+        std::cout << "Process not found!\n";
         return 1;
     }
 
@@ -135,13 +135,13 @@ int main()
         }
         else
         {
-            std::cerr << "Thread32First failed with error: " << GetLastError() << "\n";
+            std::cout << "Thread32First failed with error: " << GetLastError() << "\n";
             return 1;
         }
     }
     else
     {
-        std::cerr << "CreateToolhelp32Snapshot failed with error: " << GetLastError() << "\n";
+        std::cout << "CreateToolhelp32Snapshot failed with error: " << GetLastError() << "\n";
         return 1;
     }
 
